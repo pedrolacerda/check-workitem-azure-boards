@@ -22,48 +22,34 @@ function getProperties(obj)
     return res;
 }
 
-const getPullRequest = `
-  query repository(owner: "pedrolacerda", name:"bookstore"){
-    pullRequest(number: 10) {
-      commits(first: 100){
-        nodes{
-          commit{
-            message
+const getPullRequestCommits = `
+    query repository($owner: String!, $name: String!, $number: Int!){
+      repository(owner: $owner, name: $name){
+        pullRequest(number: $number) {
+          commits(first: 100){
+            nodes{
+              commit{
+                message
+              }
+            }
           }
         }
       }
     }
-  }
-`
+    
+  `
 
 module.exports = app => {
   app.on(['check_suite.requested', 'check_run.rerequested'], check)
 
   async function check (context) {
     const startTime = new Date()
+    // getProperties(context.payload)
 
-    getProperties(context.github.pullRequests)
+    const payload = context.payload
+    pullRequests = payload.check_suite.pull_requests
 
-    context.github.query(getPullRequest, {
-      number: context.payload.check_suite.pull_requests[0],
-      owner: 'pedrolacerda',
-      repo: context.repo().repo,
-    })
-
-    // const payload = context.payload
-    // pull_requests = payload.check_suite.pull_requests
-
-    // const pr_data = {
-    //   // owner: context.repo().username,
-    //   owner: "LacerdaCorp",
-    //   repo: context.repo().repo,
-    //   number: 2
-    // }
-
-    // const pr = context.github.issues.listForAuthenticatedUser()
-
-
-    // pull_requests.forEach(element => {
+    // pullRequests.forEach(element => {
     //   var pr_number = element.number
 
     //   pr_data.number = pr_number
@@ -71,15 +57,43 @@ module.exports = app => {
     //   var pr = context.github.pullRequests.list(pr_data)
       
     // })
+ 
+    let queryResult = await context.github.query(getPullRequestCommits, {
+      owner: 'LacerdaCorp',
+      name: context.repo().repo,
+      number: parseInt(pullRequests[0].number)
+    })
 
     var workItem = {
       id: null,
       exists: false
-    }    
+    }
+
+    queryResult.repository.pullRequest.commits.nodes.forEach(element => {
+      
+      var commitMessage = element.commit.message
+      if(commitMessage.includes("AB#")){
+        app.log("Work Item Assigned")
+        workItem.id = 0
+
+        //Call Azure Boards API
+        if(commitMessage.includes("AB#12") || commitMessage.includes("AB#13") || commitMessage.includes("AB#14") || commitMessage.includes("AB#15") ||
+        commitMessage.includes("AB#16") || commitMessage.includes("AB#17") || commitMessage.includes("AB#18") || commitMessage.includes("AB#19") ||
+        commitMessage.includes("AB#20") || commitMessage.includes("AB#11")){
+          workItem.exists = true
+          workItem.id = 15
+          app.log("Work Item Exists")
+          return
+
+        } 
+      }else {
+        app.log("Work Item Doesn't exist")
+      }
+    })
 
     const { head_branch: headBranch, head_sha: headSha } = context.payload.check_suite
     // Probot API note: context.repo() => {username: 'hiimbex', repo: 'testing-things'}
-    if (workItem.exists){
+    if (workItem.id && workItem.exists){
       return context.github.checks.create(context.repo({
         name: 'Required Azure Boards Work Item',
         head_branch: headBranch,
@@ -93,7 +107,7 @@ module.exports = app => {
           summary: 'The check has passed!'
         }
       }))
-    } if(!workItem.exists) {
+    } else if(workItem.id !== null && !workItem.exists) {
         return context.github.checks.create(context.repo({
           name: 'Required Azure Boards Work Item',
           head_branch: headBranch,
@@ -118,7 +132,7 @@ module.exports = app => {
         conclusion: 'failure',
         completed_at: new Date(),
         output: {
-          title: "Azure Boards Work Item doesn't exist!",
+          title: "No Azure Boards Work Item has been assigned!",
           summary: 'The check has failed!'
         }
       }))
