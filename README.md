@@ -17,10 +17,12 @@ npm install
 npm start
 ```
 ### Configure environment variables
-You'll need three extra enviroment variables configured in your '.env' file:
-**1. API_URL**: The URL of your Azure DevOps org
-**1. API_TOKEN**: Your Personal Acess Token used to authenticate with Azure DevOps
-**1. API_PROJECT**: The name of the project you want to query for Work Items
+You'll need three extra enviroment variables configured in your `.env` file:
+1. **API_URL**: The URL of your Azure DevOps org
+1. **API_TOKEN**: Your Personal Acess Token used to authenticate with Azure DevOps
+1. **API_PROJECT**: The name of the project you want to query for Work Items
+
+_Check the `.env.example` file for more info_
 
 ## Contributing
 
