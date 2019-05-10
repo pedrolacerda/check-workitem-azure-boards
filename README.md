@@ -2,6 +2,11 @@
 
 > A GitHub App built with [Probot](https://github.com/probot/probot) that A Probot App that checks if the PR has any valid Azure Boards WorkItems assigned 
 
+![image](https://user-images.githubusercontent.com/609076/57497682-0463bf80-72af-11e9-9277-f2419a222325.png)
+
+## App Page
+https://github.com/apps/check-workitem-azure-boards/
+
 ## Setup
 
 ```sh
@@ -11,6 +16,11 @@ npm install
 # Run the bot
 npm start
 ```
+### Configure environment variables
+You'll need three extra enviroment variables configured in your '.env' file:
+**1. API_URL**: The URL of your Azure DevOps org
+**1. API_TOKEN**: Your Personal Acess Token used to authenticate with Azure DevOps
+**1. API_PROJECT**: The name of the project you want to query for Work Items
 
 ## Contributing
 
