@@ -1,6 +1,6 @@
 # check-workitem-azure-boards
 
-> A GitHub App built with [Probot](https://github.com/probot/probot) that A Probot App that checks if the PR has any valid Azure Boards WorkItems assigned 
+> A GitHub App built with [Probot](https://github.com/probot/probot) that checks if the PR has any valid Azure Boards WorkItems assigned 
 
 ![image](https://user-images.githubusercontent.com/609076/57497682-0463bf80-72af-11e9-9277-f2419a222325.png)
 
