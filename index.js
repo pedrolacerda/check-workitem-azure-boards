@@ -132,6 +132,11 @@ const getPullRequestCommits = `
               commit{
                 message
               }
+              cursor
+            }
+            pageInfo {
+              endCursor
+              hasNextPage
             }
           }
         }
