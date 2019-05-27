@@ -31,9 +31,9 @@ function getProperties(obj)
 }
 
 module.exports = app => {
-
+  app.log("Chamou a funcao")
   app.on(['check_suite.requested', 'check_run.rerequested'], check)
-app.log("Chamou a funcao")
+ 
   async function check (context) {
     const startTime = new Date()
     const payload = context.payload
