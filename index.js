@@ -30,8 +30,9 @@ function getProperties(obj)
     return res;
 }
 
+app.log("Chamou a funcao")
+
 module.exports = app => {
-  app.log("Chamou a funcao")
   app.on(['check_suite.requested', 'check_run.rerequested'], check)
  
   async function check (context) {
