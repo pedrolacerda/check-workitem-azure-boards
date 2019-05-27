@@ -30,8 +30,6 @@ function getProperties(obj)
     return res;
 }
 
-app.log("Chamou a funcao")
-
 module.exports = app => {
   app.on(['check_suite.requested', 'check_run.rerequested'], check)
  
@@ -133,11 +131,6 @@ const getPullRequestCommits = `
               commit{
                 message
               }
-              cursor
-            }
-            pageInfo {
-              endCursor
-              hasNextPage
             }
           }
         }
