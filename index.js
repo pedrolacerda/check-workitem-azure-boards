@@ -12,6 +12,7 @@
  */
 
 const azdev = require('azure-devops-node-api')
+// var workItemAssigned = -1
 
 // Just for logging purposes
 function getProperties(obj)
@@ -25,7 +26,6 @@ function getProperties(obj)
           item.obj = m
           console.log("Property: "+item.type +" "+ item.obj)
           res.push(item)
-        // }
     }
     return res;
 }
@@ -35,6 +35,7 @@ module.exports = app => {
   app.on(['check_suite.requested', 'check_run.rerequested'], check)
 
   async function check (context) {
+  
     const startTime = new Date()
     const payload = context.payload
     pullRequests = payload.check_suite.pull_requests
@@ -44,41 +45,56 @@ module.exports = app => {
     //   pr_data.number = pr_number
     //   var pr = context.github.pullRequests.list(pr_data)
     // })
- 
+    const { head_branch: headBranch, head_sha: headSha } = context.payload.check_suite
+    // Probot API note: context.repo() => {username: 'hiimbex', repo: 'testing-things'}
+
     let queryResult = await context.github.query(getPullRequestCommits, {
-      owner: context.payload.organization.login,
+      // owner: context.payload.organization.login,
+      owner: "pedrolacerda",
       name: context.repo().repo,
       number: parseInt(pullRequests[0].number)
     })
 
     let connection = await getAzDevConnection()
-    let workItemApi = await connection.getWorkItemTrackingApi();
+    let workItemApi = await connection.getWorkItemTrackingApi()
+    let workItemAssigned = await workItemExists(queryResult, workItemApi)
 
-    let hasWorkItems = workItemExists(queryResult, workItemApi)
-    console.log("Chegou aqui");
-
-    hasWorkItems.then(function (result){
-      const { head_branch: headBranch, head_sha: headSha } = context.payload.check_suite
-    // Probot API note: context.repo() => {username: 'hiimbex', repo: 'testing-things'}
-
-    // WorkItem assigned and exists in Azure Boards
-    if (1){
-      return context.github.checks.create(context.repo({
-        name: 'Required Azure Boards WorkItem',
-        head_branch: headBranch,
-        head_sha: headSha,
-        status: 'completed',
-        started_at: startTime,
-        conclusion: 'success',
-        completed_at: new Date(),
-        output: {
-          title: 'Azure Boards WorkItem exists!',
-          summary: 'The check has passed!'
-        }
-      }))
-    
-    // WorkItem assigned but doesn't exists in Azure Boards
-    } else if(0) {
+    console.log("Retorno da função: "+workItemAssigned)
+      // WorkItem assigned and exists in Azure Boards
+      if (workItemAssigned == 1){
+        return context.github.checks.create(context.repo({
+          name: 'Required Azure Boards WorkItem',
+          head_branch: headBranch,
+          head_sha: headSha,
+          status: 'completed',
+          started_at: startTime,
+          conclusion: 'success',
+          completed_at: new Date(),
+          output: {
+            title: 'Azure Boards WorkItem exists!',
+            summary: 'The check has passed!'
+          }
+        }))
+      
+      // WorkItem assigned but doesn't exists in Azure Boards
+      } else if(workItemAssigned == 0) {
+          return context.github.checks.create(context.repo({
+            name: 'Required Azure Boards Work Item',
+            head_branch: headBranch,
+            head_sha: headSha,
+            status: 'completed',
+            started_at: startTime,
+            conclusion: 'failure',
+            completed_at: new Date(),
+            output: {
+              title: "Azure Boards Work Item doesn't exist!",
+              summary: 'The check has failed!'
+            }
+          }))
+      }
+      
+      // No WorkItem assigned in any commit
+      else {
         return context.github.checks.create(context.repo({
           name: 'Required Azure Boards WorkItem',
           head_branch: headBranch,
@@ -88,29 +104,12 @@ module.exports = app => {
           conclusion: 'failure',
           completed_at: new Date(),
           output: {
-            title: "Azure Boards WorkItem doesn't exist!",
+            title: "No Azure Boards WorkItem has been assigned!",
             summary: 'The check has failed!'
           }
         }))
-    }
-    
-    // No WorkItem assigned in any commit
-    else {
-      return context.github.checks.create(context.repo({
-        name: 'Required Azure Boards WorkItem',
-        head_branch: headBranch,
-        head_sha: headSha,
-        status: 'completed',
-        started_at: startTime,
-        conclusion: 'failure',
-        completed_at: new Date(),
-        output: {
-          title: "No Azure Boards WorkItem has been assigned!",
-          summary: 'The check has failed!'
-        }
-      }))
-    }
-    })
+      }
+
   }
 
   // For more information on building apps:
@@ -132,17 +131,11 @@ const getPullRequestCommits = `
               commit{
                 message
               }
-              cursor
-            }
-            pageInfo {
-              endCursor
-              hasNextPage
             }
           }
         }
       }
     }
-    
   `
 
 /*
@@ -162,10 +155,6 @@ const getAzDevConnection = async () => {
  */
 const regex = /AB#\d+/;
 
-const getAzBoardsWorkItem = async(workItemApi, workItemId, project) => {
-  workItemApi.getWorkItem(parseInt(workItemId), null, null, null, project)
-}
-
 /*
  * Search for existing Work Items in Azure Boards
  * returns:
@@ -173,34 +162,39 @@ const getAzBoardsWorkItem = async(workItemApi, workItemId, project) => {
  * 0: None of the WorkItem exist in Azure Boards
  * -1: No WorkItem assigned in any commit
  */
-const workItemExists = async (queryResult, workItemApi) => {
-  queryResult.repository.pullRequest.commits.nodes.forEach(element => {
+async function workItemExists (queryResult, workItemApi) {
+  
+  console.log("Tamanho da lista de commits: " + queryResult.repository.pullRequest.commits.nodes.length)
+  var workItemAssigned = -1
+
+   queryResult.repository.pullRequest.commits.nodes.forEach(element => {
   
     let commitMessage = element.commit.message
     let workItem = regex.exec(commitMessage)
 
-    if(workItem !== null){
-      //app.log("Work Item Assigned")
-
-      let workItemId = workItem[0].substring(workItem[0].indexOf("#")+1,workItem[0].length);
+    if(workItem !== null && workItemAssigned != 1){
+      console.log("Work Item Assigned")
+      //Gets Work Item's ID from the string
+      let workItemId = workItem[0].substring(workItem[0].indexOf("#")+1, workItem[0].length);
       console.log("WorkItem ID: "+ workItemId)
+      workItemAssigned = 0
+    }
 
-      //Call Azure Boards API
-      let azDevWorkItem = workItemApi.getWorkItem(parseInt(workItemId), null, null, null, process.env.API_PROJECT)
-      // let azDevWorkItem = await getAzBoardsWorkItem(workItemApi, workItemId, process.env.API_PROJECT);
+    workItemAssigned = await retrieveWorkItemFromAzureBoards(workItemId, process)
+  })
+  // return (workItemAssigned ? 0 : -1)
+  return workItemAssigned
+}
 
-      azDevWorkItem.then(function (result){
-        if(result != null){
-          workItem.exists = true
-          workItem.id = workItemId
-          console.log("Work Item Exists")
-          return 1
-        } else {
-          return 0
-        }
-      })
+async function retrieveWorkItemFromAzureBoards(workItemId, process){
+  let workItemAssigned = 0
+  workItemApi.getWorkItem(parseInt(workItemId), null, null, null, process.env.API_PROJECT).then(function(value) {
+    if(value != null){          
+      workItemAssigned = 1
+      console.log("Work item exists: "+workItemAssigned)
     } else {
-      return -1
+      console.log("Work item doesn't exist: "+workItemAssigned)
     }
   })
+  return workItemAssigned     
 }
