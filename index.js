@@ -12,7 +12,6 @@
  */
 
 const azdev = require('azure-devops-node-api')
-// var workItemAssigned = -1
 
 // Just for logging purposes
 function getProperties(obj)
@@ -59,7 +58,7 @@ module.exports = app => {
     let workItemApi = await connection.getWorkItemTrackingApi()
     let workItemAssigned = await workItemExists(queryResult, workItemApi)
 
-    console.log("Retorno da função: "+workItemAssigned)
+    console.log("Function return: "+workItemAssigned)
       // WorkItem assigned and exists in Azure Boards
       if (workItemAssigned == 1){
         return context.github.checks.create(context.repo({
@@ -164,37 +163,35 @@ const regex = /AB#\d+/;
  */
 async function workItemExists (queryResult, workItemApi) {
   
-  console.log("Tamanho da lista de commits: " + queryResult.repository.pullRequest.commits.nodes.length)
-  var workItemAssigned = -1
+  let workItemAssigned = -1
 
-   queryResult.repository.pullRequest.commits.nodes.forEach(element => {
+   queryResult.repository.pullRequest.commits.nodes.forEach(async element => {
   
     let commitMessage = element.commit.message
     let workItem = regex.exec(commitMessage)
 
     if(workItem !== null && workItemAssigned != 1){
       console.log("Work Item Assigned")
+
       //Gets Work Item's ID from the string
       let workItemId = workItem[0].substring(workItem[0].indexOf("#")+1, workItem[0].length);
       console.log("WorkItem ID: "+ workItemId)
+
       workItemAssigned = 0
-    }
 
-    workItemAssigned = await retrieveWorkItemFromAzureBoards(workItemId, process)
+      let workItemReturned = await workItemApi.getWorkItem(parseInt(workItemId), null, null, null, process.env.API_PROJECT)
+      
+      if(workItemReturned != null){
+        
+        getProperties(workItemReturned.fields)
+        workItemAssigned = 1
+        console.log("Work item exists: "+workItemAssigned)
+        return workItemAssigned
+
+      } else {
+        console.log("Work item doesn't exist: "+workItemAssigned)
+      }
+    }
   })
-  // return (workItemAssigned ? 0 : -1)
   return workItemAssigned
-}
-
-async function retrieveWorkItemFromAzureBoards(workItemId, process){
-  let workItemAssigned = 0
-  workItemApi.getWorkItem(parseInt(workItemId), null, null, null, process.env.API_PROJECT).then(function(value) {
-    if(value != null){          
-      workItemAssigned = 1
-      console.log("Work item exists: "+workItemAssigned)
-    } else {
-      console.log("Work item doesn't exist: "+workItemAssigned)
-    }
-  })
-  return workItemAssigned     
 }
