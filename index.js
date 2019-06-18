@@ -16,7 +16,6 @@ const getConfig = require('probot-config')
 
 module.exports = app => {
   app.on(['pull_request.opened', 'pull_request.edited'], check)
-
   async function check (context) {
     const config = await getConfig('ado.yml')
 
@@ -172,4 +171,5 @@ async function workItemExists (queryResult, workItemApi, api_project) {
     }
   }
   return workItemAssigned
+
 }
