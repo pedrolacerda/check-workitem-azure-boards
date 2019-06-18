@@ -27,6 +27,7 @@ module.exports = app => {
         title: 'Configuration Error',
         message: config.error
       }
+      console.log(e)
       await createCheck(context, e)
     } else {
       const api_url = config.api_url
