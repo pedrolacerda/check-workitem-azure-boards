@@ -37,7 +37,7 @@ module.exports = app => {
   
     const startTime = new Date()
     const payload = context.payload
-    pullRequests = payload.check_suite.pull_requests
+    const pullRequests = payload.check_suite.pull_requests
 
     // pullRequests.forEach(element => {
     //   var pr_number = element.number
@@ -182,7 +182,7 @@ async function workItemExists (queryResult, workItemApi) {
       let workItemReturned = await workItemApi.getWorkItem(parseInt(workItemId), null, null, null, process.env.API_PROJECT)
       
       if(workItemReturned != null){
-        
+
         getProperties(workItemReturned.fields)
         workItemAssigned = 1
         console.log("Work item exists: "+workItemAssigned)
