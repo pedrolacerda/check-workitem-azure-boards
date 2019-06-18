@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "azure-devops-node-api": "^8.0.0",
-    "probot": "^7.2.0"
+    "probot": "^7.2.0",
+    "probot-config": "^1.0.1"
   },
   "devDependencies": {
     "jest": "^24.0.0",
