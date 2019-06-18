@@ -1,3 +1,4 @@
+.github/
 .env
 .pem
-.github/
+.github/ado.yml
